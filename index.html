@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Business Atlas - Tata Motors</title>
+    <!-- Load Cytoscape.js Graph Engine -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.27.0/cytoscape.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background-color: #0d1117; /* Dark background like GitHub */
+            color: white;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+            overflow: hidden;
+        }
+        #header {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+        }
+        #header h1 { margin: 0; font-size: 24px; }
+        #header p { margin: 5px 0 0 0; color: #8b949e; font-size: 14px; }
+        
+        /* The container for our graph */
+        #cy {
+            width: 100vw;
+            height: 100vh;
+            display: block;
+        }
+        
+        /* Style for the hover tooltip */
+        #tooltip {
+            position: absolute;
+            background: #161b22;
+            border: 1px solid #30363d;
+            padding: 10px;
+            border-radius: 6px;
+            pointer-events: none;
+            display: none;
+            z-index: 20;
+            max-width: 250px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="header">
+        <h1>Tata Motors</h1>
+        <p>Interactive Supply Chain & Value Network</p>
+    </div>
+
+    <div id="cy"></div>
+    <div id="tooltip"></div>
+
+    <script>
+        // 1. Initialize the Graph
+        const cy = cytoscape({
+            container: document.getElementById('cy'),
+            
+            // 2. Define the Elements (Nodes and Edges)
+            // This is where your mapped data lives!
+            elements: [
+                // CENTER NODE
+                { data: { id: 'TataMotors', label: 'Tata Motors', type: 'Company' } },
+
+                // RAW MATERIALS
+                { data: { id: 'Steel', label: 'Steel', type: 'RawMaterial' } },
+                { data: { id: 'Aluminium', label: 'Aluminium', type: 'RawMaterial' } },
+                { data: { id: 'Lithium', label: 'Lithium', type: 'RawMaterial' } },
+
+                // TIER-1 SUPPLIERS
+                { data: { id: 'TataSteel', label: 'Tata Steel', type: 'Supplier' } },
+                { data: { id: 'Hindalco', label: 'Hindalco', type: 'Supplier' } },
+                { data: { id: 'MRF', label: 'MRF Tyres', type: 'Supplier' } },
+                { data: { id: 'Bosch', label: 'Bosch', type: 'Supplier' } },
+                { data: { id: 'Exide', label: 'Exide Batteries', type: 'Supplier' } },
+
+                // PLANTS
+                { data: { id: 'Pune', label: 'Pune Plant', type: 'Plant' } },
+                { data: { id: 'Sanand', label: 'Sanand Plant', type: 'Plant' } },
+
+                // PRODUCTS
+                { data: { id: 'Nexon', label: 'Nexon (ICE & EV)', type: 'Product' } },
+                { data: { id: 'Punch', label: 'Punch (ICE & EV)', type: 'Product' } },
+                { data: { id: 'Ace', label: 'Ace Truck', type: 'Product' } },
+
+                // DISTRIBUTION & CUSTOMERS
+                { data: { id: 'Dealers', label: 'Dealer Network', type: 'Distribution' } },
+                { data: { id: 'Individuals', label: 'Individual Buyers', type: 'Customer' } },
+                { data: { id: 'FleetOwners', label: 'Fleet Operators', type: 'Customer' } },
+                { data: { id: 'Government', label: 'Government/Defence', type: 'Customer' } },
+
+                // --- EDGES (Connections) ---
+                // Materials to Suppliers
+                { data: { source: 'Steel', target: 'TataSteel' } },
+                { data: { source: 'Aluminium', target: 'Hindalco' } },
+                
+                // Suppliers to Tata Motors
+                { data: { source: 'TataSteel', target: 'TataMotors', label: 'Supplies Steel' } },
+                { data: { source: 'Hindalco', target: 'TataMotors', label: 'Supplies Aluminium' } },
+                { data: { source: 'MRF', target: 'TataMotors', label: 'Supplies Tyres' } },
+                { data: { source: 'Bosch', target: 'TataMotors', label: 'Supplies Electronics' } },
+                { data: { source: 'Exide', target: 'TataMotors', label: 'Supplies Batteries' } },
+
+                // EV Specific chain
+                { data: { source: 'Lithium', target: 'Exide' } },
+
+                // Tata Motors to Plants
+                { data: { source: 'TataMotors', target: 'Pune', label: 'Manufactures at' } },
+                { data: { source: 'TataMotors', target: 'Sanand', label: 'Manufactures at' } },
+
+                // Plants to Products
+                { data: { source: 'Pune', target: 'Nexon', label: 'Assembles' } },
+                { data: { source: 'Sanand', target: 'Punch', label: 'Assembles' } },
+                { data: { source: 'Sanand', target: 'Ace', label: 'Assembles' } },
+
+                // Products to Dealers
+                { data: { source: 'Nexon', target: 'Dealers' } },
+                { data: { source: 'Punch', target: 'Dealers' } },
+                { data: { source: 'Ace', target: 'Dealers' } },
+
+                // Dealers to Customers
+                { data: { source: 'Dealers', target: 'Individuals', label: 'Sells to' } },
+                { data: { source: 'Dealers', target: 'FleetOwners', label: 'Sells to' } },
+                { data: { source: 'Dealers', target: 'Government', label: 'Sells to' } }
+            ],
+
+            // 3. Style the Graph
+            style: [
+                {
+                    selector: 'node',
+                    style: {
+                        'background-color': '#30363d',
+                        'label': 'data(label)',
+                        'color': '#c9d1d9',
+                        'text-wrap': 'wrap',
+                        'text-align': 'center',
+                        'text-valign': 'bottom',
+                        'font-size': '12px',
+                        'width': '40px',
+                        'height': '40px'
+                    }
+                },
+                // Color code by type!
+                {
+                    selector: 'node[type = "Company"]',
+                    style: { 'background-color': '#f85149', 'width': '60px', 'height': '60px', 'font-size': '16px', 'font-weight': 'bold' }
+                },
+                {
+                    selector: 'node[type = "RawMaterial"]',
+                    style: { 'background-color': '#d29922' } // Yellow
+                },
+                {
+                    selector: 'node[type = "Supplier"]',
+                    style: { 'background-color': '#58a6ff' } // Blue
+                },
+                {
+                    selector: 'node[type = "Plant"]',
+                    style: { 'background-color': '#bc8cff' } // Purple
+                },
+                {
+                    selector: 'node[type = "Product"]',
+                    style: { 'background-color': '#3fb950' } // Green
+                },
+                {
+                    selector: 'node[type = "Customer"]',
+                    style: { 'background-color': '#ff7b72' } // Light Red
+                },
+                {
+                    selector: 'edge',
+                    style: {
+                        'width': 2,
+                        'line-color': '#484f58',
+                        'target-arrow-color': '#484f58',
+                        'target-arrow-shape': 'triangle',
+                        'curve-style': 'bezier',
+                        'label': 'data(label)',
+                        'font-size': '8px',
+                        'color': '#8b949e',
+                        'text-background-color': '#0d1117',
+                        'text-background-padding': '2px'
+                    }
+                },
+                // Highlight style when hovering
+                {
+                    selector: '.highlighted',
+                    style: {
+                        'background-color': '#ffffff',
+                        'line-color': '#ffffff',
+                        'target-arrow-color': '#ffffff',
+                        'width': 4,
+                        'z-index': 999
+                    }
+                }
+            ],
+
+            // 4. Layout Algorithm (How the graph arranges itself)
+            layout: {
+                name: 'cose', // Compound Spring Embedders - physics based layout
+                animate: true,
+                idealEdgeLength: 100,
+                nodeRepulsion: 800000,
+                padding: 10
+            }
+        });
+
+        // 5. Interactivity (Hover Effects & Tooltips)
+        const tooltip = document.getElementById('tooltip');
+        
+        cy.on('mouseover', 'node', function(evt) {
+            const node = evt.target;
+            // Highlight connected edges and nodes
+            node.addClass('highlighted');
+            node.connectedEdges().addClass('highlighted');
+            
+            // Show Tooltip
+            tooltip.innerHTML = `<strong>${node.data('label')}</strong><br>Type: ${node.data('type')}`;
+            tooltip.style.display = 'block';
+        });
+
+        cy.on('mousemove', 'node', function(evt) {
+            // Move tooltip with mouse
+            tooltip.style.left = evt.renderedPosition.x + 15 + 'px';
+            tooltip.style.top = evt.renderedPosition.y + 15 + 'px';
+        });
+
+        cy.on('mouseout', 'node', function(evt) {
+            const node = evt.target;
+            // Remove highlight
+            node.removeClass('highlighted');
+            node.connectedEdges().removeClass('highlighted');
+            
+            // Hide Tooltip
+            tooltip.style.display = 'none';
+        });
+
+    </script>
+</body>
+</html>
